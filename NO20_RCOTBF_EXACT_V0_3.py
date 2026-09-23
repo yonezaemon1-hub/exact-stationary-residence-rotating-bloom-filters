@@ -58,11 +58,13 @@ def falling(m: int, j: int) -> int:
 
 
 def coeffs(m: int, b: int):
+    # Inclusion-exclusion coefficient for P(X_t <= b).
     return [(-1)**(b-i) * comb(m, i) * comb(m-i-1, b-i)
             for i in range(b+1)]
 
 
 def survival_stirling(m: int, k: int, b: int, n: int) -> Fraction:
+    """P(L>n), where L is the number of item insertions in one cycle."""
     check(m,k,b)
     if n < 0:
         raise ValueError
@@ -88,6 +90,13 @@ def pmf_L(m: int, k: int, b: int, n: int) -> Fraction:
 
 
 def moments_L(m: int, k: int, b: int):
+    """
+    Tail-sum identities:
+      E[L]   = sum q_n
+      E[L^2] = sum (2n+1)q_n
+      E[L^3] = sum (3n^2+3n+1)q_n
+    with q_n=P(L>n).
+    """
     mu=e2=e3=Fraction(0)
     for i,c in enumerate(coeffs(m,b)):
         r = Fraction(i**k, m**k)
@@ -141,6 +150,10 @@ def G_R(m:int,k:int,b:int,s:int,z:Fraction)->Fraction:
 
 
 def poisson_laplace(m:int,k:int,b:int,s:int,lam:Fraction,u:Fraction)->Fraction:
+    """
+    If item arrivals are Poisson(rate lambda), T|R=r is Erlang(r,lambda).
+    Therefore E[e^{-uT}] = G_R(lambda/(lambda+u)).
+    """
     if lam <= 0 or u < 0:
         raise ValueError
     return G_R(m,k,b,s,lam/(lam+u))
@@ -161,6 +174,10 @@ def placement_dp_survival(m:int,k:int,b:int,n:int)->Fraction:
 
 
 def item_transition(m:int,k:int,j:int):
+    """
+    Distribution of occupied-bit count after one whole item (k placements),
+    starting at occupancy j. Exact DP, used as an independent Markov check.
+    """
     p={j:Fraction(1)}
     for _ in range(k):
         q={}
@@ -173,6 +190,10 @@ def item_transition(m:int,k:int,j:int):
 
 
 def markov_mean_cycle(m:int,k:int,b:int)->Fraction:
+    """
+    Solve E_j = 1 + sum_{h<=b} P(j->h) E_h for j=0..b
+    by exact Gaussian elimination. States >b terminate.
+    """
     n=b+1
     A=[[Fraction(0) for _ in range(n+1)] for __ in range(n)]
     for j in range(n):
@@ -206,6 +227,7 @@ def truncate_distribution_L(m:int,k:int,b:int,eps=1e-14):
         n+=1
         if n>1_000_000:
             raise RuntimeError("tail truncation too long")
+    # absorb only numerical leftover is deliberately NOT done
     return out
 
 
@@ -234,6 +256,10 @@ def conv(a,b):
 
 
 def residence_distribution(m:int,k:int,b:int,s:int,eps=1e-14):
+    """
+    Returns a floating PMF indexed directly by residence-count r.
+    A starts at 0; L starts at 1, so prepend 0 to L PMF.
+    """
     A=truncate_distribution_A(m,k,b,eps)
     L=[0.0]+truncate_distribution_L(m,k,b,eps)
     R=A
@@ -252,6 +278,12 @@ def quantile(pmf,q):
 
 
 def monte_carlo(m:int,k:int,b:int,s:int,reps:int,seed:int=12345):
+    """
+    Direct regenerative simulation:
+    sample complete cycles exactly by placements; then create a stationary
+    tagged epoch by length-biasing with rejection proportional to cycle length
+    using a batch empirical cycle pool. This is only an audit, not the theorem.
+    """
     rng=random.Random(seed)
 
     def one_cycle():
@@ -266,6 +298,7 @@ def monte_carlo(m:int,k:int,b:int,s:int,reps:int,seed:int=12345):
 
     pool=[one_cycle() for _ in range(max(5000,reps//2))]
     total=sum(pool)
+    # length-biased empirical cycle selection by cumulative insertion slots
     cumsum=[]
     z=0
     for L in pool:
@@ -279,7 +312,7 @@ def monte_carlo(m:int,k:int,b:int,s:int,reps:int,seed:int=12345):
         idx=bisect.bisect_right(cumsum,slot)
         L0=pool[idx]
         start=0 if idx==0 else cumsum[idx-1]
-        pos=slot-start
+        pos=slot-start  # 0..L0-1
         A=L0-1-pos
         R=A
         for __ in range(s-1):
