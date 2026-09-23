@@ -1,0 +1,34 @@
+NO20 ZENODO SOFTWARE RECORD
+
+Title:
+Exact Stationary Residence-Time Laws for Occupancy-Triggered Rotating Bloom-Filter Rings
+
+Author:
+Ryutaro Yonezu
+
+Zenodo Software DOI:
+10.5281/zenodo.22927019
+
+Zenodo record:
+https://zenodo.org/records/22927019
+
+Deposition / record id:
+22927019
+
+GitHub repository:
+https://github.com/yonezaemon1-hub/exact-stationary-residence-rotating-bloom-filters
+
+GitHub release:
+https://github.com/yonezaemon1-hub/exact-stationary-residence-rotating-bloom-filters/releases/tag/v1.0.0
+
+Frozen manuscript SHA-256:
+3459e6caac9ca3f6a1fdc8c0b1dee8e0c51683db41e83d67bdf23d038338088e
+
+Release package SHA-256:
+857f7423a9a2c56fd37514bfb47935ae8efac7fbd45e0c76a05083e45e755b54
+
+Publication date:
+2026-09-24
+
+Status:
+PUBLISHED
