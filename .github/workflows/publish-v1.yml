@@ -16,13 +16,38 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Verify frozen assets
+      - name: Restore and verify frozen assets
         shell: bash
         run: |
           set -euo pipefail
-          echo "3459e6caac9ca3f6a1fdc8c0b1dee8e0c51683db41e83d67bdf23d038338088e  NO20_PAPER_V0_4.pdf" | sha256sum -c -
+
+          echo "ZIP actual:"
+          sha256sum NO20_RCOTBF_V1_0_0_RELEASE.zip
           echo "857f7423a9a2c56fd37514bfb47935ae8efac7fbd45e0c76a05083e45e755b54  NO20_RCOTBF_V1_0_0_RELEASE.zip" | sha256sum -c -
+
+          unzip -p NO20_RCOTBF_V1_0_0_RELEASE.zip             NO20_RCOTBF_V1_0_0_RELEASE/NO20_PAPER_V0_4.pdf             > /tmp/NO20_PAPER_V0_4.frozen.pdf
+
+          echo "Frozen PDF from ZIP:"
+          sha256sum /tmp/NO20_PAPER_V0_4.frozen.pdf
+          echo "3459e6caac9ca3f6a1fdc8c0b1dee8e0c51683db41e83d67bdf23d038338088e  /tmp/NO20_PAPER_V0_4.frozen.pdf" | sha256sum -c -
+
+          if ! cmp -s /tmp/NO20_PAPER_V0_4.frozen.pdf NO20_PAPER_V0_4.pdf; then
+            echo "Standalone PDF differs from frozen ZIP copy; restoring canonical bytes."
+            cp /tmp/NO20_PAPER_V0_4.frozen.pdf NO20_PAPER_V0_4.pdf
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add NO20_PAPER_V0_4.pdf
+            git commit -m "Restore frozen paper PDF from release package"
+            git push origin HEAD:main
+          fi
+
+          echo "Standalone PDF after restore:"
+          sha256sum NO20_PAPER_V0_4.pdf
+          echo "3459e6caac9ca3f6a1fdc8c0b1dee8e0c51683db41e83d67bdf23d038338088e  NO20_PAPER_V0_4.pdf" | sha256sum -c -
+
           python NO20_RCOTBF_EXACT_V0_3.py --self-test
           python NO20_TAIL_AUDIT_V0_4.py | tee tail_audit.log
           grep -F "TAIL_RATIO_AUDIT_PASS" tail_audit.log
@@ -33,10 +58,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          echo "RELEASE_SHA=$RELEASE_SHA"
+
           if gh release view v1.0.0 >/dev/null 2>&1; then
             echo "Release v1.0.0 already exists; leaving it unchanged."
             exit 0
           fi
+
           cat > RELEASE_NOTES.md <<'EOF'
           Reviewed publication package for:
 
@@ -56,11 +85,4 @@ jobs:
           - independent claim/proof/citation review: PASS
           EOF
 
-          gh release create v1.0.0 \
-            NO20_PAPER_V0_4.pdf \
-            NO20_RCOTBF_V1_0_0_RELEASE.zip \
-            SHA256SUMS.txt \
-            --target "$GITHUB_SHA" \
-            --title "No.20 v1.0.0" \
-            --notes-file RELEASE_NOTES.md \
-            --latest
+          gh release create v1.0.0             NO20_PAPER_V0_4.pdf             NO20_RCOTBF_V1_0_0_RELEASE.zip             SHA256SUMS.txt             --target "$RELEASE_SHA"             --title "No.20 v1.0.0"             --notes-file RELEASE_NOTES.md
