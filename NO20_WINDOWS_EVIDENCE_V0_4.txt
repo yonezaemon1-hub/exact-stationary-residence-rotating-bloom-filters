@@ -1,0 +1,80 @@
+NO20 WINDOWS REAL-MACHINE EVIDENCE V0.4
+Audit date: 2026-09-23
+Platform evidence: Windows path C:\Users\meteo\..., Python 3.12 executable path shown by Windows.
+
+Successful commands and outputs supplied by the author:
+
+python .\NO20_RCOTBF_EXACT_V0_3.py --self-test
+SELF_TEST_PASS
+
+python .\NO20_RCOTBF_EXACT_V0_3.py --m 64 --k 4 --b 32 --s 2
+SELF_TEST_PASS
+PARAM m=64 k=4 b=32 s=2
+E[L]=11.8413337533
+Var(L)=1.36890173903
+E[A]=5.47846871583
+Var(A)=12.3034080568
+E[R_s]=17.3198024691
+Var(R_s)=13.6723097959
+Q05(R_s)=12
+Q50(R_s)=17
+Q95(R_s)=23
+Q99(R_s)=25
+
+python .\NO20_RCOTBF_EXACT_V0_3.py --m 64 --k 4 --b 32 --s 4
+SELF_TEST_PASS
+PARAM m=64 k=4 b=32 s=4
+E[L]=11.8413337533
+Var(L)=1.36890173903
+E[A]=5.47846871583
+Var(A)=12.3034080568
+E[R_s]=41.0024699756
+Var(R_s)=16.4101132739
+Q05(R_s)=35
+Q50(R_s)=41
+Q95(R_s)=48
+Q99(R_s)=50
+
+python .\NO20_RCOTBF_EXACT_V0_3.py --m 64 --k 4 --b 60 --s 2 --mc 100000
+SELF_TEST_PASS
+PARAM m=64 k=4 b=60 s=2
+E[L]=46.943921126
+Var(L)=57.1256586347
+E[A]=23.5804063134
+Var(A)=213.729372828
+E[R_s]=70.5243274394
+Var(R_s)=270.855031463
+Q05(R_s)=45
+Q50(R_s)=70
+Q95(R_s)=98
+Q99(R_s)=109
+MC mean=70.52517, theory=70.524327
+MC var =271.82293, theory=270.85503
+
+python .\NO20_TAIL_AUDIT_V0_3.py
+TAIL_FORMULA_SELF_TEST_PASS
+PARAM 64 4 32 2
+mu= 11.841333753259761
+r= 0.0625
+c= 1832624140942590534
+pmf_constant= 4.25439141225246e+36
+survival_constant= 2.83626094150164e+35
+PARAM 64 4 60 2
+mu= 46.94392112595897
+r= 0.7724761962890625
+c= 635376
+pmf_constant= 2532934643.549585
+survival_constant= 8599679185.145042
+PARAM 64 4 60 4
+mu= 46.94392112595897
+r= 0.7724761962890625
+c= 635376
+pmf_constant= 1.4784880342838084e+19
+survival_constant= 5.0196805536595665e+19
+
+RESULTS
+PASS_WINDOWS_EXACT_KERNEL=true
+PASS_WINDOWS_MONTE_CARLO_SANITY=true
+PASS_WINDOWS_TAIL_FORMULA=true
+
+Note: local pdflatex was not installed on the Windows machine. This is an environment/tooling issue only; PDF compilation is performed separately from the numerical audit.
