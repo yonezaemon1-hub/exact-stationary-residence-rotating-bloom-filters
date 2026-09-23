@@ -7,4 +7,7 @@ authors:
     given-names: Ryutaro
 version: 1.0.0
 date-released: 2026-09-24
+doi: 10.5281/zenodo.22927019
+url: "https://zenodo.org/records/22927019"
+repository-code: "https://github.com/yonezaemon1-hub/exact-stationary-residence-rotating-bloom-filters"
 license: MIT
