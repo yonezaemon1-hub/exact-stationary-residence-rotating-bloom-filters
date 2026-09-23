@@ -1,0 +1,336 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs,array}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={Exact Stationary Residence-Time Laws for Occupancy-Triggered Rotating Bloom-Filter Rings},pdfauthor={Ryutaro Yonezu}}
+\usepackage{microtype}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prb}{\mathbb{P}}
+\title{Exact Stationary Residence-Time Laws for Occupancy-Triggered Rotating Bloom-Filter Rings}
+\author{Ryutaro Yonezu}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Occupancy-triggered recycling and two-buffer aging of Bloom filters are established mechanisms, and prior analyses characterize recycle capacity, average false-positive rates, and recycling-induced false negatives. We isolate a different quantity: the stationary residence time of a tagged insertion in an occupancy-triggered rotating ring of $s$ queryable filters. Under an iid colliding-hash placement model, classical occupancy hitting probabilities determine the cycle law. We show that length-biased stationary sampling yields an explicit probability generating function for the tagged residence count,
+\[
+G_{R_s}(z)=\frac{H(z)}{\E[L]}G_L(z)^{s-1},
+\]
+where $L$ is one occupancy-triggered cycle length and $H(z)=\sum_{n\ge0}\Prb(L>n)z^n$. This gives exact mean and variance formulas, computable quantiles, a polynomial-geometric tail, and a Laplace transform for wall-clock retention under Poisson insertions. A Windows real-machine audit cross-checks the cycle law by three exact routes, validates cycle means through an independent Markov recursion, and confirms the residence moments and tail constants; a $10^5$-sample Monte Carlo check agrees with the exact mean to about $1.2\times10^{-5}$ relative error in the principal numerical example. The result separates known cycle-level occupancy machinery from a tagged-retention quantity useful for retention quantiles and service-level design.
+\end{abstract}
+
+\section{Introduction}
+A Bloom filter is a compact approximate-membership data structure whose bits monotonically accumulate under insertion. Long-running systems therefore often recycle or rotate filters to prevent the false-positive rate from growing without bound. Occupancy-triggered recycling, in which a filter is recycled after the number of set bits passes a threshold, has been analyzed using renewal and Markov methods, including two-phase variants that alternate an active and a frozen filter~\cite{dozierfp2024,dozierfn2024}. Earlier aging and sliding-window variants also use multiple buffers or age partitions to preserve recent membership information~\cite{yoon2010,shtul2020}.
+
+The present paper does not introduce recycling or multi-buffer retention. It asks a narrower stochastic question. Suppose one insertion is sampled from a long stationary execution. For how many \emph{additional insertions} will that particular tagged item remain queryable before the filter containing it is cleared? This is not a cycle-average quantity: stationary sampling length-biases the cycle containing the tag, so the residual part of the current cycle follows an equilibrium residual law rather than the original cycle law.
+
+We derive the exact stationary tagged-item residence distribution for an arbitrary $s$-filter ring under an iid uniform placement model with replacement. The one-cycle occupancy hitting law is treated as input machinery from the negative-occupancy/coupon-collector literature~\cite{oneill2022}. The contribution is the composition of that cycle law with stationary length bias and subsequent iid cycles. The resulting PGF yields exact moments and quantiles, an explicit asymptotic tail, and a Poisson-time transform.
+
+\section{Model and threshold convention}
+Each sub-filter has $m\ge1$ bits. Every newly inserted distinct item generates $k\ge1$ independent uniform bit placements in $\{1,\ldots,m\}$, with replacement; within-item collisions are therefore allowed. Placements are independent across distinct items. This is the colliding-hash random-oracle idealization used in standard Bloom-filter analysis.
+
+Let $X_t$ denote the number of distinct occupied bit positions after $t$ individual placements into a fresh filter. Fix an integer threshold $0\le b<m$. The active filter processes an insertion, sets all of its $k$ bit positions, and then checks occupancy. The cycle ends if the post-insertion occupancy exceeds $b$:
+\[
+L=\min\{n\ge1:X_{kn}>b\}.
+\]
+This post-insertion convention matches the $\sigma$-bounded recycling convention in the closest RBF analysis: hashes are applied first and recycling is triggered when the resulting number of set bits exceeds the threshold~\cite{dozierfp2024}. In a two-phase rotation, the full active filter becomes frozen, the old frozen filter is cleared, and roles switch; thus the threshold-crossing insertion remains represented in the newly frozen filter.
+
+We generalize the two-phase mechanism to a ring with $s\ge1$ queryable filters. At each rotation the oldest filter is cleared, the just-completed active filter enters the retained ring, and a fresh active filter begins. A tagged insertion is sampled uniformly from insertion epochs in the stationary regenerative process. Define $R_s$ as the number of \emph{additional} insertions after the tagged insertion until the filter containing it is cleared.
+
+\section{Known one-cycle occupancy law}
+Write
+\[
+q_n=\Prb(L>n),\qquad \mu=\E[L].
+\]
+The event $L>n$ is exactly the event that after $kn$ placements at most $b$ bins are occupied. Hence
+\begin{equation}
+q_n
+=m^{-kn}\sum_{j=0}^{b}(m)_j
+\left\{\!\!\begin{matrix}kn\\j\end{matrix}\!\!\right\},
+\label{eq:stirling}
+\end{equation}
+where $(m)_j=m(m-1)\cdots(m-j+1)$ and the braces are Stirling numbers of the second kind. This is a specialization of classical negative-occupancy/coupon-collector hitting probabilities~\cite{oneill2022}.
+
+For computation it is convenient to use the finite-geometric representation
+\begin{equation}
+q_n=\sum_{i=0}^{b}c_i r_i^n,
+\qquad
+c_i=(-1)^{b-i}\binom mi\binom{m-i-1}{b-i},
+\qquad
+r_i=\left(\frac{i}{m}\right)^k.
+\label{eq:geomtail}
+\end{equation}
+Define
+\begin{equation}
+H(z)=\sum_{n\ge0}q_nz^n
+=\sum_{i=0}^{b}\frac{c_i}{1-r_i z}.
+\label{eq:H}
+\end{equation}
+For positive integer-valued $L$,
+\begin{equation}
+G_L(z)=\E[z^L]=1-(1-z)H(z).
+\label{eq:GL}
+\end{equation}
+We use \eqref{eq:stirling}--\eqref{eq:GL} as known cycle-level machinery rather than as a novelty claim.
+
+\section{Stationary tagged-insertion residence law}
+The key step is the equilibrium residual induced by sampling an insertion epoch rather than sampling a cycle.
+
+\begin{lemma}[Discrete equilibrium residual]
+Let $A$ be the number of additional insertions remaining in the tagged item's current cycle. Then, for every $a\ge0$,
+\begin{equation}
+\Prb(A=a)=\frac{\Prb(L>a)}{\mu}=\frac{q_a}{\mu},
+\qquad
+G_A(z)=\frac{H(z)}{\mu}.
+\label{eq:residual}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Sampling an insertion epoch length-biases a cycle of length $\ell$ by a factor $\ell$. Conditional on that cycle, each of its $\ell$ insertion positions is equally likely. Exactly one position has $a$ additional insertions remaining whenever $\ell>a$. Therefore
+\[
+\Prb(A=a)
+=\sum_{\ell>a}\frac{\ell\Prb(L=\ell)}{\mu}\frac1\ell
+=\frac{\Prb(L>a)}{\mu}.
+\]
+Summing over $a$ gives the PGF identity.
+\end{proof}
+
+\begin{theorem}[Exact stationary tagged residence PGF]
+For an $s$-filter ring,
+\begin{equation}
+R_s=A+L_1+\cdots+L_{s-1},
+\label{eq:sumrep}
+\end{equation}
+where $L_1,\ldots,L_{s-1}$ are iid copies of $L$ independent of $A$. Consequently,
+\begin{equation}
+\boxed{
+G_{R_s}(z)=\frac{H(z)}{\mu}G_L(z)^{s-1}.
+}
+\label{eq:mainpgf}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+After the tagged insertion's current cycle ends, the filter containing the tag remains queryable while exactly $s-1$ fresh cycles complete. Fresh-cycle placements use independent randomness, so the future cycle lengths are iid and independent of the current-cycle residual $A$. Equation~\eqref{eq:sumrep} follows from the rotation rule, and multiplication of independent PGFs yields \eqref{eq:mainpgf}.
+\end{proof}
+
+Equation~\eqref{eq:mainpgf} is the central result. It gives the entire stationary residence-count distribution by finite convolution or coefficient extraction from a rational function.
+
+\section{Exact moments}
+Tail-sum identities and \eqref{eq:geomtail} give
+\begin{align}
+\E[L]
+&=\sum_{i=0}^{b}\frac{c_i}{1-r_i},\\
+\E[L^2]
+&=\sum_{i=0}^{b}c_i\frac{1+r_i}{(1-r_i)^2},\\
+\E[L^3]
+&=\sum_{i=0}^{b}c_i\frac{1+4r_i+r_i^2}{(1-r_i)^3}.
+\end{align}
+The equilibrium residual satisfies
+\begin{align}
+\E[A]
+&=\frac{\E[L^2]-\E[L]}{2\E[L]},\label{eq:EA}\\
+\E[A^2]
+&=\frac{2\E[L^3]-3\E[L^2]+\E[L]}{6\E[L]}.
+\label{eq:EA2}
+\end{align}
+
+\begin{corollary}[Residence mean and variance]
+\begin{equation}
+\boxed{
+\E[R_s]
+=\frac{\E[L^2]-\E[L]}{2\E[L]}+(s-1)\E[L]
+}
+\label{eq:meanR}
+\end{equation}
+and
+\begin{equation}
+\boxed{
+\operatorname{Var}(R_s)
+=\operatorname{Var}(A)+(s-1)\operatorname{Var}(L).
+}
+\label{eq:varR}
+\end{equation}
+Equivalently,
+\begin{equation}
+\E[R_s]
+=\left(s-\frac12\right)\mu-\frac12
++\frac{\operatorname{Var}(L)}{2\mu}.
+\label{eq:inspection}
+\end{equation}
+\end{corollary}
+
+The last term in \eqref{eq:inspection} is the discrete inspection-paradox correction. It vanishes only for deterministic cycle length.
+
+\section{Asymptotic tail}
+The rational PGF also exposes the extreme-retention scale.
+
+\begin{theorem}[Dominant polynomial-geometric tail]
+Assume $b\ge1$ and define
+\[
+r=\left(\frac bm\right)^k,
+\qquad
+c=\binom mb.
+\]
+Then, for fixed $s$,
+\begin{equation}
+\boxed{
+\Prb(R_s=n)
+\sim
+\frac{c^s(1-r)^{s-1}}
+{\mu r^{s-1}(s-1)!}
+\,n^{s-1}r^n.
+}
+\label{eq:pmftail}
+\end{equation}
+Moreover,
+\begin{equation}
+\boxed{
+\Prb(R_s>n)
+\sim
+\frac{c^s(1-r)^{s-2}}
+{\mu r^{s-2}(s-1)!}
+\,n^{s-1}r^n.
+}
+\label{eq:survtail}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+In \eqref{eq:H}, $r_i<r$ for $i<b$, while $c_b=\binom mb=c>0$, so the unique dominant pole of $H$ is $z=1/r$ and
+\[
+H(z)\sim \frac{c}{1-rz}.
+\]
+Using \eqref{eq:GL},
+\[
+G_L(z)\sim
+\frac{c(1-r)}{r}\frac1{1-rz}.
+\]
+Substitution in \eqref{eq:mainpgf} gives
+\[
+G_{R_s}(z)
+\sim
+\frac{c^s(1-r)^{s-1}}{\mu r^{s-1}}(1-rz)^{-s}.
+\]
+Since
+$[z^n](1-rz)^{-s}=\binom{n+s-1}{s-1}r^n
+\sim n^{s-1}r^n/(s-1)!$,
+\eqref{eq:pmftail} follows. Summing a polynomial-geometric sequence multiplies the leading term by $r/(1-r)$, yielding \eqref{eq:survtail}.
+\end{proof}
+
+\section{Poisson wall-clock retention}
+The insertion-count result converts directly to continuous time under a standard arrival model.
+
+\begin{corollary}[Poisson-arrival transform]
+If future insertions form a Poisson process of rate $\lambda>0$, independently of the hash placements, and $T_s$ is the remaining wall-clock residence time, then for $u\ge0$,
+\begin{equation}
+\boxed{
+\E[e^{-uT_s}]
+=G_{R_s}\!\left(\frac{\lambda}{\lambda+u}\right).
+}
+\label{eq:laplace}
+\end{equation}
+In particular,
+\[
+\E[T_s]=\frac{\E[R_s]}{\lambda}.
+\]
+\end{corollary}
+
+\begin{proof}
+Conditional on $R_s=r$, the time to $r$ future Poisson arrivals is Erlang$(r,\lambda)$, with Laplace transform $(\lambda/(\lambda+u))^r$. Averaging over $R_s$ gives \eqref{eq:laplace}.
+\end{proof}
+
+\section{Workload boundary}
+The iid placement assumption is essential. Occupancy triggering alone cannot provide a distribution-free finite-retention guarantee when keys repeat under fixed hashes.
+
+\begin{proposition}[Arbitrary-stream impossibility boundary]
+Suppose each key has fixed hash positions. If an input stream is supported on keys whose union of hash positions has cardinality at most $b$, then the threshold need never be crossed and a cycle can be infinite. In particular, repeating one key forever occupies at most $k$ positions, so for $b\ge k$ finite retention is not guaranteed.
+\end{proposition}
+
+This proposition does not weaken the stochastic theorem; it states its trust boundary. A stochastic retention SLA requires an explicit workload model.
+
+\section{Numerical audit and quantile effect}
+The reproducibility code implements independent exact checks of the cycle law by (i) the Stirling formula \eqref{eq:stirling}, (ii) the finite-geometric form \eqref{eq:geomtail}, and (iii) direct occupancy dynamic programming. It separately solves exact Markov equations for the cycle mean. Residence distributions are formed by finite truncation and convolution, and the tail constant is independently audited.
+
+Table~\ref{tab:cases} reports the principal cases reproduced on a Windows real machine with Python 3.12. Each exact-kernel invocation reported a self-test pass, and the independent tail-constant audit also reported a pass.
+
+\begin{table}[ht]
+\centering
+\caption{Exact stationary residence results reproduced on Windows.}
+\label{tab:cases}
+\begin{tabular}{rrrrrrrr}
+\toprule
+$m$ & $k$ & $b$ & $s$ & $\E[L]$ & $\E[R_s]$ & $Q_{0.95}$ & $Q_{0.99}$\\
+\midrule
+64 & 4 & 32 & 2 & 11.8413 & 17.3198 & 23 & 25\\
+64 & 4 & 32 & 4 & 11.8413 & 41.0025 & 48 & 50\\
+64 & 4 & 60 & 2 & 46.9439 & 70.5243 & 98 & 109\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For the high-threshold case $(m,k,b,s)=(64,4,60,2)$, a deterministic mean-cycle surrogate replaces $L$ by $47$ and samples the tag uniformly within that fixed cycle. Its 99th percentile is $93$, whereas the exact stationary law gives $109$, a difference of $16$ insertions or about $17.2\%$ relative to the surrogate. The exact mean is only $70.5243$, so the principal practical effect is in the upper quantiles rather than in the mean correction alone.
+
+A $100{,}000$-sample regenerative Monte Carlo audit for the same case gave
+\[
+\widehat{\E[R_2]}=70.52517
+\quad\text{versus}\quad
+\E[R_2]=70.5243274394,
+\]
+a relative mean discrepancy of approximately $1.2\times10^{-5}$. The simulated variance $271.82293$ is close to the exact $270.85503$.
+
+\section{Related work and claim boundary}
+The single-cycle threshold law belongs to extended occupancy and coupon-collector theory; O'Neill develops negative-occupancy distributions, geometric-convolution representations, generating functions, moments, and asymptotic properties~\cite{oneill2022}. We therefore use the cycle law only as an input.
+
+Dozier, Salamatian, and Rubenstein analyze occupancy-triggered Recycling Bloom Filters using Markov and renewal models, including the expected number of messages before recycle and a two-phase active/frozen variant~\cite{dozierfp2024}. Their later work studies recycling-induced false negatives, again including two-phase filters and renewal analysis~\cite{dozierfn2024}. These works establish the closest mechanism and cycle-level analytical context. Our scope is narrower: the equilibrium, length-biased residence distribution of a tagged insertion across an arbitrary $s$-filter ring.
+
+Multi-buffer aging is older still. Yoon studies an aging Bloom filter with two active buffers~\cite{yoon2010}, while Age-Partitioned Bloom Filters target duplicate detection over sliding windows with controlled slack~\cite{shtul2020}. Accordingly, neither multi-generation retention nor the rotation mechanism is claimed as new here.
+
+A targeted literature search found these close precedents but did not locate the same arbitrary-$s$ stationary tagged-insertion PGF \eqref{eq:mainpgf} together with its residence moments, polynomial-geometric tail, and Poisson-time transform. This is a bounded claim about the search performed, not a proof of global novelty.
+
+\section{Limitations}
+The exact formulas assume iid independent placements with replacement and independent fresh-cycle randomness. They do not directly cover adversarial or strongly correlated repeated-key streams, non-colliding within-item hashing, double-hashing dependence, or adaptive thresholds. For large practical $m$, colliding and non-colliding hashing can be close in false-positive behavior, but the exact residence formulas here are tied to the stated colliding-placement model. Extending the residence theorem to other one-cycle laws is straightforward at the renewal-composition level: if a different mechanism supplies a positive integer cycle law $L$ with finite mean, Lemma 1 and Theorem 1 still apply with its corresponding $H$ and $G_L$.
+
+\section{Conclusion}
+Occupancy-triggered rotating Bloom-filter rings admit a simple exact stationary law once the correct sampling perspective is used. Stationary insertion sampling replaces the raw cycle law by its discrete equilibrium residual, and the retained future generations contribute iid complete cycles. The resulting PGF \eqref{eq:mainpgf} yields exact moments, quantiles, tail asymptotics, and continuous-time transforms while keeping the contribution distinct from known occupancy hitting-time and recycling analyses. The Windows audit confirms the numerical implementation and shows that upper retention quantiles can differ materially from mean-cycle surrogates even when mean residence is close.
+
+\begin{thebibliography}{9}
+
+\bibitem{oneill2022}
+Ben O'Neill.
+\newblock An Examination of the Negative Occupancy Distribution and the Coupon-Collector Distribution.
+\newblock \emph{Methodology and Computing in Applied Probability}, 24:3229--3260, 2022.
+\newblock doi:10.1007/s11009-022-09966-x.
+
+\bibitem{dozierfp2024}
+Kahlil Dozier, Loqman Salamatian, and Dan Rubenstein.
+\newblock Modeling Average False Positive Rates of Recycling Bloom Filters.
+\newblock In \emph{IEEE INFOCOM 2024}, pages 1970--1979, 2024.
+\newblock doi:10.1109/INFOCOM52122.2024.10621226.
+
+\bibitem{dozierfn2024}
+Kahlil Dozier, Loqman Salamatian, and Dan Rubenstein.
+\newblock Analysis of False Negative Rates for Recycling Bloom Filters (Yes, They Happen!).
+\newblock \emph{Proceedings of the ACM on Measurement and Analysis of Computing Systems}, 8(2), 2024.
+\newblock doi:10.1145/3656005.
+
+\bibitem{yoon2010}
+MyungKeun Yoon.
+\newblock Aging Bloom Filter with Two Active Buffers for Dynamic Sets.
+\newblock \emph{IEEE Transactions on Knowledge and Data Engineering}, 22(1):134--138, 2010.
+\newblock doi:10.1109/TKDE.2009.136.
+
+\bibitem{shtul2020}
+Ariel Shtul, Carlos Baquero, and Paulo Sergio Almeida.
+\newblock Age-Partitioned Bloom Filters.
+\newblock arXiv:2001.03147, 2020.
+
+\end{thebibliography}
+\end{document}
