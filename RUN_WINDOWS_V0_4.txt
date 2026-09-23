@@ -1,0 +1,9 @@
+# Numerical audit (PowerShell)
+python .\NO20_RCOTBF_EXACT_V0_3.py --self-test
+python .\NO20_RCOTBF_EXACT_V0_3.py --m 64 --k 4 --b 32 --s 2
+python .\NO20_RCOTBF_EXACT_V0_3.py --m 64 --k 4 --b 32 --s 4
+python .\NO20_RCOTBF_EXACT_V0_3.py --m 64 --k 4 --b 60 --s 2 --mc 100000
+python .\NO20_TAIL_AUDIT_V0_3.py
+
+# PDF source is NO20_PAPER_V0_4.tex.
+# If pdflatex/latexmk is unavailable on Windows, the numerical audit is unaffected.
