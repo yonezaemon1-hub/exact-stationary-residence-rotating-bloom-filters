@@ -2,7 +2,11 @@
 
 Author: Ryutaro Yonezu
 
-Release candidate: `v1.0.0`
+Release: `v1.0.0`
+
+Software / Evidence DOI: `10.5281/zenodo.22927019`
+
+Zenodo record: https://zenodo.org/records/22927019
 
 ## Main result
 
@@ -32,11 +36,12 @@ tail-asymptotic audits.
 `NO20_PAPER_V0_4.pdf` is the reviewed manuscript and is intentionally unchanged
 by the strengthened audit.
 
-Paper licensing can be declared separately on the archival record. Source code
-in this package is MIT licensed.
+Frozen manuscript SHA-256:
 
-## Planned repository
+`3459e6caac9ca3f6a1fdc8c0b1dee8e0c51683db41e83d67bdf23d038338088e`
 
-`yonezaemon1-hub/exact-stationary-residence-rotating-bloom-filters`
+Release package SHA-256:
 
-DOI fields are intentionally omitted until archival publication.
+`857f7423a9a2c56fd37514bfb47935ae8efac7fbd45e0c76a05083e45e755b54`
+
+Source code in this repository is MIT licensed.
